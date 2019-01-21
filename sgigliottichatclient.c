@@ -19,7 +19,7 @@ int connectToServer(){
         //convert the IP address so that it can be passed into
         //the connection
         int inetWorked = inet_pton(AF_INET, "10.115.20.250", &add);
-        printf("%d\n",worked);
+        printf("Successful conversion %d\n",inetWorked);
 
         //set fields
         saddr.sin_family = AF_INET;
@@ -43,5 +43,5 @@ int connectToServer(){
 int main(int argc, char *argv[]){
     printf("Test\n");
     int check = connectToServer();
-    printf("%d\n",check);
+    printf("Socket closed %d\n",check);
 }
