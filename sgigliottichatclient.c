@@ -1,13 +1,25 @@
+
+/*
+Sophia Gigliotti
+CS140
+Chat Client
+
+Worked With: Kleinberg and Wilkens (connecting to the server)
+
+Resources:
+https://gist.github.com/jirihnidek/388271b57003c043d322
+http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
+*/
+
 #include<stdio.h>
 #include<sys/socket.h>
 #include<unistd.h>
 #include<sys/types.h>
 #include<arpa/inet.h>
-#include <string.h>
+#include<string.h>
 
-//Resources: Kleinberg and Wilkens
-//https://gist.github.com/jirihnidek/388271b57003c043d322
-//http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
+//receive messages from the server and print them to
+//the console
 int receiveMsg(int sock){
   char rMsg[256];
   int rec = recv(sock, rMsg, sizeof(rMsg),0);
@@ -15,21 +27,45 @@ int receiveMsg(int sock){
   return rec;
 }
 
+int sendMsg(int sock){
+  char msg[100];
+  char msg2[100];
+  int sentMsg;
+  /*for(int i = 0; i < sizeof(msg); i++){
+    msg[i] = ' ';
+  }*/
+  //bzero(msg,sizeof(msg));
+  while(*msg != '\n'){
+    /*for(int i = 0; i < sizeof(msg); i++){
+      msg[i] = ' ';
+    }*/
+    bzero(msg,sizeof(msg));
+    fgets(msg,sizeof(msg),stdin);
+    sentMsg = send(sock, &msg, strlen(msg),0);
+    receiveMsg(sock);
+  }
+  return sentMsg;
+}
+
+//create socket, connect to the server, and close the server
 int connectToServer(){
+
     //create a socket
-    //const struct in_addr add;
     int sock = socket(AF_INET,SOCK_STREAM,0);
     int BUF_SIZE = 100;
     //used to pass in the IP address
     struct in_addr add;
+
+    //allocates enough room for one server
     struct sockaddr_in saddr;
 
     if(sock){
         //convert the IP address so that it can be passed into
         //the connection
         int inetWorked = inet_pton(AF_INET, "10.115.20.250", &add);
-        printf("Successful conversion %d\n",inetWorked);
-
+        if(!inetWorked){
+          printf("Cannot convert IP address.");
+        }
         //set fields
         saddr.sin_family = AF_INET;
 
@@ -39,8 +75,9 @@ int connectToServer(){
 
         //connect to the socket
         int connection = connect(sock, (struct sockaddr*)&saddr, sizeof(saddr));
-
-        printf("Connection: %d \n", connection);
+        if(connection != 0){
+          printf("Error: Cannot connect to the server.");
+        }
 
         //use send and receive, some sort of while loop to get data
 
@@ -51,20 +88,8 @@ int connectToServer(){
 
         //send username to the server
         int sentUser = send(sock, &user, sizeof(user),0);
-        printf("Sent: %d\n", sentUser);
 
-        char msg[256];
-        for(int i = 0; i < sizeof(msg); i++){
-          msg[i] = ' ';
-        }
-        while(*msg != '\n'){
-          for(int i = 0; i < sizeof(msg); i++){
-            msg[i] = ' ';
-          }
-          fgets(msg,sizeof(msg),stdin);
-          int sentMsg = send(sock, &msg, sizeof(msg),0);
-          receiveMsg(sock);
-        }
+        sendMsg(sock);
 
         //printf("%s \n", msg);
         //close socket
