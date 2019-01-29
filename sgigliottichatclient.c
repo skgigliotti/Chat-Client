@@ -29,20 +29,25 @@ int receiveMsg(int sock){
 
 int sendMsg(int sock){
   char msg[100];
-  char msg2[100];
   int sentMsg;
   /*for(int i = 0; i < sizeof(msg); i++){
     msg[i] = ' ';
   }*/
-  //bzero(msg,sizeof(msg));
+  bzero(msg,sizeof(msg));
+  //memset(msg,' ',strlen(msg));
+  //sleep(1);
   while(*msg != '\n'){
     /*for(int i = 0; i < sizeof(msg); i++){
       msg[i] = ' ';
     }*/
+    //memset(msg,' ',strlen(msg));
+    //sleep(1);
     bzero(msg,sizeof(msg));
     fgets(msg,sizeof(msg),stdin);
     sentMsg = send(sock, &msg, strlen(msg),0);
+    sleep(1);
     receiveMsg(sock);
+    sleep(1);
   }
   return sentMsg;
 }
