@@ -1,4 +1,3 @@
-
 /*
 Sophia Gigliotti
 CS140
@@ -22,25 +21,23 @@ http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
 //the console
 int receiveMsg(int sock){
   char rMsg[256];
+  bzero(rMsg,sizeof(rMsg));
   int rec = recv(sock, rMsg, sizeof(rMsg),0);
-  printf("%s \n", rMsg);
-  sleep(1);
+  printf("%s\n", rMsg);
   return rec;
 }
 
 int sendMsg(int sock){
   char msg[100];
+  char msg2[100];
   int sentMsg;
 
-  bzero(msg,sizeof(msg));
-
+  //bzero(msg,sizeof(msg));
   while(*msg != '\n'){
     bzero(msg,sizeof(msg));
     fgets(msg,sizeof(msg),stdin);
     sentMsg = send(sock, &msg, strlen(msg),0);
-    sleep(1);
     receiveMsg(sock);
-    sleep(1);
   }
   return sentMsg;
 }
@@ -81,19 +78,17 @@ int connectToServer(){
 
         //ask user for name
         char user[100];
-        printf("Welcome to the chat client. \n");
         printf("Please enter your username: ");
         fgets(user,100,stdin);
 
         //send username to the server
         int sentUser = send(sock, &user, sizeof(user),0);
-
+        printf("Welcome to the chat client. \n");
         printf("Enter messages to send. Send an empty message to quit. \n");
 
         //go to function to send messages
         sendMsg(sock);
 
-        //printf("%s \n", msg);
         //close socket
         int closeSock = close(sock);
 
@@ -105,6 +100,7 @@ int connectToServer(){
 
 
 int main(int argc, char *argv[]){
+    printf("Test\n");
     int check = connectToServer();
     printf("Socket closed: %d\n",check);
 }
