@@ -1,0 +1,24 @@
+Script started on Mon Jan 28 22:04:09 2019
+[?1034hbash-3.2$ e[Kusername
+bash: username: command not found
+bash-3.2$ username[4Pexit./a.out 
+Please enter your username: username
+Welcome to the chat client. 
+Enter messages to send. Send an empty message to quit. 
+MyFirst Me         first message
+Welcome to the CS140 chat server.
+username joined the room
+
+my seconf   d message
+username>
+now I will quit
+username>my second message
+
+
+username>now I will quit
+
+Socket closed: 0
+bash-3.2$ exit
+exit
+
+Script done on Mon Jan 28 22:05:04 2019

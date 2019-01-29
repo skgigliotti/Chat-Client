@@ -2,9 +2,7 @@
 Sophia Gigliotti
 CS140
 Chat Client
-
 Worked With: Kleinberg and Wilkens (connecting to the server)
-
 Resources:
 https://gist.github.com/jirihnidek/388271b57003c043d322
 http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
@@ -100,7 +98,7 @@ int connectToServer(){
 
 
 int main(int argc, char *argv[]){
-    printf("Test\n");
+    
     int check = connectToServer();
     printf("Socket closed: %d\n",check);
 }
