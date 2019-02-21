@@ -45,13 +45,18 @@ int sendMsg(int sock){
   int quit = 0;
   //bzero(msg,sizeof(msg));
   while( !quit ){
-    receiveMsg(sock);
+    //receiveMsg(sock);
     len = BUF_SIZE;
+
     buffer = malloc(len+1);
+
     originalbuffer = buffer;
 
+
     if( getline(&buffer, (size_t *) &len, stdin)>1){
-      sentMsg = send(sock, buffer, strlen(msg),0);
+
+      sentMsg = send(sock, buffer, strlen(buffer),0);
+      printf("%d\n", sentMsg);
     }
     quit = (strcmp (buffer,"quit\n") == 0);
     free(originalbuffer);
@@ -105,12 +110,12 @@ int connectToServer(char *argv, int argc){
           exit(1);
         }
 
-        name = &argv[1];
+        name = &argv[8];
         len = strlen(name);
         name[len] = '\n';
         name[len+1] = '\0';
         int sentUser = send(sock, name, sizeof(name),0);
-
+        printf("%d\n", sentUser);
         //use send and receive, some sort of while loop to get data
 
         //ask user for name
