@@ -26,11 +26,34 @@ http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
 
 //receive messages from the server and print them to
 //the console
-int receiveMsg(int sock){
+int receiveMsg(int sock, char *buff){
   char rMsg[BUF_SIZE];
   bzero(rMsg,sizeof(rMsg));
-  int rec = recv(sock, rMsg, sizeof(rMsg),0);
-  printf("%s\n", rMsg);
+
+  int rec;
+  for(;;){
+    buff = malloc(BUF_SIZE+1);
+    rec = recv(sock, buff, sizeof(rMsg),0);
+
+    if(rec == -1){
+      if(errno == EAGAIN){
+        break;
+      }
+      else{
+        printf("ERROR: error receiving. errno = %d\n", errno);
+        exit(errno);
+      }
+    }
+    else if (rec == 0){
+      exit(0);
+    }
+    else{
+      buff[rec] = 0;
+      printf("%s", buff);
+    }
+    free(buff);
+  }
+
   return rec;
 }
 
@@ -45,7 +68,7 @@ int sendMsg(int sock){
   int quit = 0;
   //bzero(msg,sizeof(msg));
   while( !quit ){
-    //receiveMsg(sock);
+    receiveMsg(sock, buffer);
     len = BUF_SIZE;
 
     buffer = malloc(len+1);
@@ -56,7 +79,7 @@ int sendMsg(int sock){
     if( getline(&buffer, (size_t *) &len, stdin)>1){
 
       sentMsg = send(sock, buffer, strlen(buffer),0);
-      printf("%d\n", sentMsg);
+      
     }
     quit = (strcmp (buffer,"quit\n") == 0);
     free(originalbuffer);
