@@ -4,9 +4,12 @@ CS140
 Chat Client
 Worked With: Kleinberg and Wilkens (connecting to the server)
 Resources:
-John Rodkey's Sample Code from Part 1
+John Rodkey's Sample Code from Part 1, helped with malloc
 https://gist.github.com/jirihnidek/388271b57003c043d322
 http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
+
+To help with nCurses
+https://github.com/AngusG/tictactoe-ncurses-reinforcement-learning/blob/master/tictactoefunctions.c
 */
 
 #include<stdio.h>
@@ -19,41 +22,78 @@ http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
 #include<string.h>
 #include<time.h>
 #include<errno.h>
+#include<ncurses.h>
+#include <sys/time.h>
+#include <sys/select.h>
 
 #define BUF_SIZE 1024
 #define SERVER "10.115.20.250"
 #define PORT 49153
 
+
+
+
+//create sub console/window to display messages
+int secondWind(){
+  initscr();
+
+  int x;
+  int y;
+
+  for( y=0 ; y <=10; y++){
+    mvaddch(y, 0, '|');
+    mvaddch(y,12, '|');
+  }
+
+
+  return 1;
+
+}
+
 //receive messages from the server and print them to
 //the console
 int receiveMsg(int sock, char *buff){
-  char rMsg[BUF_SIZE];
-  bzero(rMsg,sizeof(rMsg));
 
+
+  int len;
   int rec;
-  for(;;){
-    buff = malloc(BUF_SIZE+1);
-    rec = recv(sock, buff, sizeof(rMsg),0);
+  int rMsg;
+  fd_set read;
+  struct timeval time;
+
+  len = BUF_SIZE;
+
+  while(1){
+    FD_ZERO(&read);
+    FD_SET(sock, &read);
+
+    time.tv_sec = 5;
+    time.tv_usec = 0;
+
+    buff = malloc(len+1);
+
+    rec = recv(sock, buff, sizeof(buff),0);
 
     if(rec == -1){
       if(errno == EAGAIN){
         break;
       }
-      else{
-        printf("ERROR: error receiving. errno = %d\n", errno);
-        exit(errno);
-      }
-    }
-    else if (rec == 0){
-      exit(0);
-    }
-    else{
-      buff[rec] = 0;
-      printf("%s", buff);
-    }
-    free(buff);
+
   }
 
+    rMsg = select(2, &read, NULL, NULL, &time);
+
+    if(rMsg == 0){
+      printf("timeout \n");
+      return 0;
+    }
+
+    else{
+      printf("%s", buff);
+    }
+
+    free(buff);
+}
   return rec;
 }
 
@@ -63,10 +103,14 @@ int sendMsg(int sock){
   char *buffer, *originalbuffer;
   int sentMsg;
   int len;
+  int wMsg;
+
+  fd_set write;
+  struct timeval time;
 
 
   int quit = 0;
-  //bzero(msg,sizeof(msg));
+
   while( !quit ){
     receiveMsg(sock, buffer);
     len = BUF_SIZE;
@@ -75,12 +119,24 @@ int sendMsg(int sock){
 
     originalbuffer = buffer;
 
+    FD_ZERO(&write);
+    FD_SET(sock, &write);
 
-    if( getline(&buffer, (size_t *) &len, stdin)>1){
+    time.tv_sec = 5;
+    time.tv_usec = 0;
 
-      sentMsg = send(sock, buffer, strlen(buffer),0);
-      
+    wMsg = select(2, NULL, &write, NULL, &time);
+    if(wMsg == 0){
+      printf("Timeout \n");
     }
+    else{
+      if( getline(&buffer, (size_t *) &len, stdin)>1 ){
+
+        sentMsg = send(sock, buffer, strlen(buffer),0);
+
+      }
+    }
+
     quit = (strcmp (buffer,"quit\n") == 0);
     free(originalbuffer);
 
@@ -138,19 +194,11 @@ int connectToServer(char *argv, int argc){
         name[len] = '\n';
         name[len+1] = '\0';
         int sentUser = send(sock, name, sizeof(name),0);
-        printf("%d\n", sentUser);
-        //use send and receive, some sort of while loop to get data
-
-        //ask user for name
-        /*char user[BUF_SIZE];
-        printf("Please enter your username: ");
-        fgets(user,BUF_SIZE,stdin);
 
         //send username to the server
-        int sentUser = send(sock, &user, sizeof(user),0);
-        printf("Welcome to the chat client. \n");
-        printf("Enter messages to send. Send an empty message to quit. \n");
-        */
+        printf("%d\n", sentUser);
+
+
         //go to function to send messages
         sendMsg(sock);
 
