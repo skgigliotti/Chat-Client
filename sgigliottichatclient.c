@@ -2,7 +2,7 @@
 Sophia Gigliotti
 CS140
 Chat Client
-Worked With: Kleinberg and Wilkens (connecting to the server)
+Worked With: Kleinberg and Wilkens (connecting to the server), Ryley Oroku (select)
 Resources:
 John Rodkey's Sample Code from Part 1, helped with malloc
 https://gist.github.com/jirihnidek/388271b57003c043d322
@@ -10,6 +10,9 @@ http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
 
 To help with nCurses
 https://github.com/AngusG/tictactoe-ncurses-reinforcement-learning/blob/master/tictactoefunctions.c
+
+To help with Select
+https://www.youtube.com/watch?v=qyFwGyTYe-M
 */
 
 #include<stdio.h>
@@ -58,41 +61,43 @@ int receiveMsg(int sock, char *buff){
   int len;
   int rec;
   int rMsg;
-  fd_set read;
+  fd_set read, activeRead;
   struct timeval time;
 
   len = BUF_SIZE;
+  FD_ZERO(&activeRead);
+  FD_SET(sock, &activeRead);
+  time.tv_sec = 5;
+  time.tv_usec = 0;
+
 
   while(1){
-    FD_ZERO(&read);
-    FD_SET(sock, &read);
 
-    time.tv_sec = 5;
-    time.tv_usec = 0;
-
-    buff = malloc(len+1);
-
-    rec = recv(sock, buff, sizeof(buff),0);
-
-    if(rec == -1){
-      if(errno == EAGAIN){
-        break;
-      }
-
-  }
+    read = activeRead;
 
     rMsg = select(2, &read, NULL, NULL, &time);
 
-    if(rMsg == 0){
-      printf("timeout \n");
+    buff = malloc(len+1);
+
+
+    if(rMsg < 0){
+      printf("timeoutR \n");
       return 0;
     }
 
     else{
-      printf("%s", buff);
+      if(rec == -1){
+        if(errno == EAGAIN){
+          break;
+        }
     }
+      rec = recv(sock, buff, BUF_SIZE ,0);
+      printf("%s", buff);
+      free(buff);
+    }
+    FD_CLR(0,&activeRead);
 
-    free(buff);
+
 }
   return rec;
 }
@@ -105,38 +110,42 @@ int sendMsg(int sock){
   int len;
   int wMsg;
 
-  fd_set write;
+  fd_set write, activeWrite;
   struct timeval time;
-
 
   int quit = 0;
 
+  FD_ZERO(&write);
+  FD_SET(sock, &write);
+
+  time.tv_sec = 2;
+  time.tv_usec = 0;
+
   while( !quit ){
+
     receiveMsg(sock, buffer);
+
+    write = activeWrite;
     len = BUF_SIZE;
 
     buffer = malloc(len+1);
 
     originalbuffer = buffer;
 
-    FD_ZERO(&write);
-    FD_SET(sock, &write);
+    //check if server is writing to socket descriptor, and we are trying to read
+    wMsg = select(2, &write, NULL, NULL, &time);
 
-    time.tv_sec = 5;
-    time.tv_usec = 0;
-
-    wMsg = select(2, NULL, &write, NULL, &time);
-    if(wMsg == 0){
-      printf("Timeout \n");
+    if( wMsg < 0 ){
+      printf("timeoutW\n");
     }
     else{
-      if( getline(&buffer, (size_t *) &len, stdin)>1 ){
+      if(getline(&buffer, (size_t *) &len, stdin)>1){
 
         sentMsg = send(sock, buffer, strlen(buffer),0);
 
       }
     }
-
+    FD_CLR(0,&activeWrite);
     quit = (strcmp (buffer,"quit\n") == 0);
     free(originalbuffer);
 
@@ -189,7 +198,7 @@ int connectToServer(char *argv, int argc){
           exit(1);
         }
 
-        name = &argv[8];
+        name = &argv[11];
         len = strlen(name);
         name[len] = '\n';
         name[len+1] = '\0';
