@@ -8,12 +8,10 @@ Resources:
 John Rodkey's Sample Code from Part 1, helped with malloc
 https://gist.github.com/jirihnidek/388271b57003c043d322
 http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
-
 To help with nCurses
 https://github.com/AngusG/tictactoe-ncurses-reinforcement-learning/blob/master/tictactoefunctions.c
 https://www.youtube.com/watch?v=mK7KqX6IQfk
 https://www.youtube.com/watch?v=TDVhJ0dkVo8
-
 To help with Select
 https://www.youtube.com/watch?v=qyFwGyTYe-M
 https://www.gnu.org/software/libc/manual/html_node/Server-Example.html (specifically FD_CLR)
@@ -206,9 +204,10 @@ int sendMsg(int sock){
 
   while( !quit ){
 
-
+    wprintw(msgWind, "bef rec");
     receiveMsg(sock, buffer, msgWind);
-
+    wprintw(msgWind, "after rec");
+    wrefresh(msgWind);
     write = activeWrite;
 
     wMsg = select(2, &write, NULL, NULL, &time);
@@ -228,7 +227,7 @@ int sendMsg(int sock){
 
         wgetstr(sWind, originalbuffer);
         wrefresh(sWind);
-        quit = (strcmp (buffer,"quit\n") == 0);
+        quit = (strcmp (originalbuffer,"quit\n") == 0);
 
         sentMsg = send(sock, buffer, strlen(buffer),0);
         //char * yn = (char) sentMsg;
@@ -250,72 +249,70 @@ int sendMsg(int sock){
 
 //create socket, connect to the server, and close the server
 int connectToServer(char *argv, int argc){
-    int len;
-    char *name;
-    struct timeval timev;
-    //create a socket
-    int sock = socket(AF_INET,SOCK_STREAM,0);
-    //used to pass in the IP address
-    struct in_addr add;
+  int len;
+  char *name;
+  struct timeval timev;
+  //create a socket
+  int sock = socket(AF_INET,SOCK_STREAM,0);
+  //used to pass in the IP address
+  struct in_addr add;
 
-    //allocates enough room for one server
-    struct sockaddr_in saddr;
+  //allocates enough room for one server
+  struct sockaddr_in saddr;
 
-    /* Set up recv timeout for .5 sec */
-    timev.tv_sec = 0;
-    timev.tv_usec = 1000 * 500;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev));
-
-
-    if(sock){
-
-        //convert the IP address so that it can be passed into
-        //the connection
-        int inetWorked = inet_pton(AF_INET, SERVER, &add);
-        if(!inetWorked){
-          printf("Cannot convert IP address.");
-        }
-        //set fields
-        saddr.sin_family = AF_INET;
-
-        //set the port number
-        saddr.sin_port = htons(PORT);
-        saddr.sin_addr = add;
-
-        //connect to the socket
-        int connection = connect(sock, (struct sockaddr*)&saddr, sizeof(saddr));
-        if( connection != 0 ){
-          printf("Error: Cannot connect to the server.");
-        }
-
-        if( argc < 2 ){
-          printf("Usage: chat-client <screenname>\n");
-          exit(1);
-        }
-
-        name = &argv[1];
-        len = strlen(name);
-        name[len] = '\n';
-        name[len+1] = '\0';
-        int sentUser = send(sock, name, sizeof(name),0);
-        printf("sent user\n");
-        printf("ok\n" );
-        //send username to the server
-        printf("%d\n", sentUser);
+  /* Set up recv timeout for .5 sec */
+  timev.tv_sec = 0;
+  timev.tv_usec = 1000 * 500;
+  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev));
 
 
-        //go to function to send messages
-        //sendMsg(sock);
+  if(sock){
 
-        //endwin(); //frees memory from initscr and closes the class
+      //convert the IP address so that it can be passed into
+      //the connection
+      int inetWorked = inet_pton(AF_INET, SERVER, &add);
+      if(!inetWorked){
+        printf("Cannot convert IP address.");
+      }
+      //set fields
+      saddr.sin_family = AF_INET;
 
-        //close socket
-        int closeSock = close(sock);
+      //set the port number
+      saddr.sin_port = htons(PORT);
+      saddr.sin_addr = add;
 
-        return closeSock;
-    }
-    return sock;
+      //connect to the socket
+      int connection = connect(sock, (struct sockaddr*)&saddr, sizeof(saddr));
+      if( connection != 0 ){
+        printf("Error: Cannot connect to the server.");
+      }
+
+      if( argc < 2 ){
+        printf("Usage: chat-client <screenname>\n");
+        exit(1);
+      }
+
+      name = &argv[12];
+      len = strlen(name);
+      name[len] = '\n';
+      name[len+1] = '\0';
+      int sentUser = send(sock, name, sizeof(name),0);
+
+      //send username to the server
+      printf("%d\n", sentUser);
+
+
+      //go to function to send messages
+      sendMsg(sock);
+
+      //close socket
+      int closeSock = close(sock);
+
+      return closeSock;
+  }
+  return sock;
 }
+
 
 
 
