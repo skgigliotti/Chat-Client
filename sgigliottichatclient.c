@@ -30,8 +30,8 @@ https://www.gnu.org/software/libc/manual/html_node/Server-Example.html (specific
 #include<time.h>
 #include<errno.h>
 #include<ncurses.h>
-#include <sys/time.h>
-#include <sys/select.h>
+#include<sys/time.h>
+#include<sys/select.h>
 
 #define BUF_SIZE 1024
 #define SERVER "10.115.20.250"
@@ -48,31 +48,38 @@ WINDOW* recWind(){
   int h = 30;
   int w = 80;
   int y = 0;
-  int x = 0;
+  int x = 20;
   WINDOW *recWin;
 
-  recWin = newwin(h,w,y,x);
 
+
+  recWin = newwin(h,w,y,x);
+  start_color();
+  init_pair(1,COLOR_BLUE, COLOR_WHITE);
+  wbkgd(recWin, COLOR_PAIR(1));
   box(recWin,0,0);
   wrefresh(recWin);
   return recWin;
 }
 
 WINDOW* sendWind(){
-  int h = 30;
-  int w = 20;
-  int y = 82;
-  int x = 0;
+  int h = 20;
+  int w = 80;
+  int y = 32;
+  int x = 20;
   WINDOW *sWin;
-  
+
   sWin = newwin(h,w,y,x);
+  start_color();
+  init_pair(2,COLOR_GREEN, COLOR_WHITE);
+  wbkgd(sWin, COLOR_PAIR(2));
 
   box(sWin,0,0);
   wrefresh(sWin);
   return sWin;
 }
 
-int secondWind(){
+int mainWind(){
 
   int h = 10;
   int w = 80;
@@ -82,14 +89,11 @@ int secondWind(){
   cbreak(); //maybe change to raw
 
   start_color();
-  init_pair(1, COLOR_RED, COLOR_BLACK);
-  attron(COLOR_PAIR(1));
-
+  init_pair(3, COLOR_RED, COLOR_BLACK);
+  attron(COLOR_PAIR(3));
+  bkgd(COLOR_PAIR(3));
   refresh();
 
-  printw("hello world");
-
-  getch(); //pause in the program, press key to continue
   endwin(); //frees memory from initscr and closes the class
 
   return 0;
@@ -110,13 +114,13 @@ int receiveMsg(int sock, char *buff, WINDOW *msgWind){
   len = BUF_SIZE;
   FD_ZERO(&activeRead);
   FD_SET(sock, &activeRead);
-  time.tv_sec = 5;
+  time.tv_sec = 2;
   time.tv_usec = 0;
   //FD_ISSET
 
   while(1){
     //scrollok
-    wrefresh(msgWind);
+    //wrefresh(msgWind);
     read = activeRead;
 
     rMsg = select(2, &read, NULL, NULL, &time);
@@ -140,7 +144,7 @@ int receiveMsg(int sock, char *buff, WINDOW *msgWind){
       free(buff);
     }
     FD_CLR(0,&activeRead);
-
+    printf("past receiving\n");
 
 }
   return rec;
@@ -165,9 +169,13 @@ int sendMsg(int sock){
   time.tv_sec = 2;
   time.tv_usec = 0;
 
-  secondWind();
-  WINDOW *msgWind = recWind();
+  mainWind();
+
   WINDOW *sWind = sendWind();
+
+  WINDOW *msgWind = recWind();
+
+  refresh();
 
   while( !quit ){
 
@@ -188,12 +196,14 @@ int sendMsg(int sock){
       printf("timeoutW\n");
     }
     else{
-      //if(getline(&buffer, (size_t *) &len, stdin)>1){
-        *buffer = wgetch(sWind);
-        wprintw(sWind, buffer);
-        sentMsg = send(sock, buffer, strlen(buffer),0);
+
+        wgetstr(sWind, buffer);
         wrefresh(sWind);
-      //}
+        sentMsg = send(sock, buffer, strlen(buffer),0);
+        //char * yn = (char) sentMsg;
+        wprintw(sWind, buffer);
+        wrefresh(sWind);
+
     }
     FD_CLR(0,&activeWrite);
     quit = (strcmp (buffer,"quit\n") == 0);
