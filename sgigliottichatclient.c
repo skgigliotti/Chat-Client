@@ -32,6 +32,7 @@ https://www.gnu.org/software/libc/manual/html_node/Server-Example.html (specific
 #include<ncurses.h>
 #include<sys/time.h>
 #include<sys/select.h>
+#include<sys/ioctl.h>
 
 #define BUF_SIZE 1024
 #define SERVER "10.115.20.250"
@@ -45,36 +46,59 @@ int printToScreen(){
 //create sub console/window to display messages
 
 WINDOW* recWind(){
-  int h = 30;
-  int w = 80;
-  int y = 0;
+  int cols, rows;
+
+  struct ttysize ts;
+  ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+  cols = ts.ts_cols;
+  rows = ts.ts_lines;
+
+  int h = rows/2 - 10;
+  int w = cols - 40;
+  int y = 10;
   int x = 20;
-  WINDOW *recWin;
+  WINDOW *recWin, *recWinContainer;
 
 
 
   recWin = newwin(h,w,y,x);
+  recWinContainer = newwin(h+10,w+10,y-5,x-5);
   start_color();
   init_pair(1,COLOR_BLUE, COLOR_WHITE);
+  init_pair(5,COLOR_BLUE, COLOR_BLUE);
+  wbkgd(recWinContainer, COLOR_PAIR(5));
   wbkgd(recWin, COLOR_PAIR(1));
-  box(recWin,0,0);
+
+  box(recWinContainer,0,0);
+  wrefresh(recWinContainer);
   wrefresh(recWin);
   return recWin;
 }
 
 WINDOW* sendWind(){
-  int h = 20;
-  int w = 80;
-  int y = 32;
+  int cols, rows;
+
+  struct ttysize ts;
+  ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+  cols = ts.ts_cols;
+  rows = ts.ts_lines;
+
+  int h = (rows/2 - 15) / 2;
+  int w = cols - 40;
+  int y = rows/2 + 12;
   int x = 20;
-  WINDOW *sWin;
+  WINDOW *sWin, *sWinContainer;
 
   sWin = newwin(h,w,y,x);
+  sWinContainer = newwin(h+10,w+10,y-5,x-5);
   start_color();
   init_pair(2,COLOR_GREEN, COLOR_WHITE);
+  init_pair(4,COLOR_GREEN, COLOR_GREEN);
+  wbkgd(sWinContainer, COLOR_PAIR(4));
   wbkgd(sWin, COLOR_PAIR(2));
 
-  box(sWin,0,0);
+  box(sWinContainer,0,0);
+  wrefresh(sWinContainer);
   wrefresh(sWin);
   return sWin;
 }
@@ -94,7 +118,6 @@ int mainWind(){
   bkgd(COLOR_PAIR(3));
   refresh();
 
-  endwin(); //frees memory from initscr and closes the class
 
   return 0;
 
@@ -112,14 +135,14 @@ int receiveMsg(int sock, char *buff, WINDOW *msgWind){
   struct timeval time;
 
   len = BUF_SIZE;
-  FD_ZERO(&activeRead);
-  FD_SET(sock, &activeRead);
+  FD_ZERO(&read);
+  FD_SET(sock, &read);
   time.tv_sec = 2;
   time.tv_usec = 0;
   //FD_ISSET
 
   while(1){
-    //scrollok
+
     //wrefresh(msgWind);
     read = activeRead;
 
@@ -139,12 +162,13 @@ int receiveMsg(int sock, char *buff, WINDOW *msgWind){
         }
     }
       rec = recv(sock, buff, BUF_SIZE ,0);
+      scrollok(msgWind,TRUE);
       wprintw(msgWind, buff);
       wrefresh(msgWind);
       free(buff);
     }
     FD_CLR(0,&activeRead);
-    printf("past receiving\n");
+
 
 }
   return rec;
@@ -163,11 +187,7 @@ int sendMsg(int sock){
 
   int quit = 0;
 
-  FD_ZERO(&write);
-  FD_SET(sock, &write);
 
-  time.tv_sec = 2;
-  time.tv_usec = 0;
 
   mainWind();
 
@@ -177,31 +197,40 @@ int sendMsg(int sock){
 
   refresh();
 
+  FD_ZERO(&write);
+  FD_SET(sock, &write);
+
+  time.tv_sec = 2;
+  time.tv_usec = 0;
+  len = BUF_SIZE;
+
   while( !quit ){
 
 
     receiveMsg(sock, buffer, msgWind);
 
     write = activeWrite;
-    len = BUF_SIZE;
+
+    wMsg = select(2, &write, NULL, NULL, &time);
 
     buffer = malloc(len+1);
 
     originalbuffer = buffer;
 
     //check if server is writing to socket descriptor, and we are trying to read
-    wMsg = select(2, &write, NULL, NULL, &time);
-    wrefresh(sWind);
+
+    //wrefresh(sWind);
     if( wMsg < 0 ){
       printf("timeoutW\n");
+      break;
     }
     else{
 
         wgetstr(sWind, buffer);
-        wrefresh(sWind);
+        //wrefresh(sWind);
         sentMsg = send(sock, buffer, strlen(buffer),0);
         //char * yn = (char) sentMsg;
-        wprintw(sWind, buffer);
+        //wprintw(sWind, buffer);
         wrefresh(sWind);
 
     }
@@ -258,18 +287,20 @@ int connectToServer(char *argv, int argc){
           exit(1);
         }
 
-        name = &argv[11];
+        name = &argv[1];
         len = strlen(name);
         name[len] = '\n';
         name[len+1] = '\0';
         int sentUser = send(sock, name, sizeof(name),0);
-
+        printf("sent user\n");
         //send username to the server
         printf("%d\n", sentUser);
 
 
         //go to function to send messages
         sendMsg(sock);
+
+        endwin(); //frees memory from initscr and closes the class
 
         //close socket
         int closeSock = close(sock);
@@ -285,4 +316,5 @@ int main(int argc, char *argv[]){
 
     int check = connectToServer(*argv,argc);
     printf("Socket closed: %d\n",check);
+
 }
