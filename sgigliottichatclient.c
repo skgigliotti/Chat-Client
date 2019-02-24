@@ -36,7 +36,7 @@ https://www.gnu.org/software/libc/manual/html_node/Server-Example.html (specific
 
 #define BUF_SIZE 1024
 #define SERVER "10.115.20.250"
-#define PORT 49155
+#define PORT 49153
 
 
 
@@ -226,12 +226,17 @@ int sendMsg(int sock){
     }
     else{
 
-        wgetstr(sWind, buffer);
-        //wrefresh(sWind);
+        wgetstr(sWind, originalbuffer);
+        wrefresh(sWind);
+        quit = (strcmp (buffer,"quit\n") == 0);
+
         sentMsg = send(sock, buffer, strlen(buffer),0);
         //char * yn = (char) sentMsg;
         //wprintw(sWind, buffer);
+        wclear(sWind);
         wrefresh(sWind);
+
+
 
     }
     FD_CLR(0,&activeWrite);
@@ -239,6 +244,7 @@ int sendMsg(int sock){
     free(originalbuffer);
 
   }
+  endwin();
   return sentMsg;
 }
 
@@ -293,14 +299,15 @@ int connectToServer(char *argv, int argc){
         name[len+1] = '\0';
         int sentUser = send(sock, name, sizeof(name),0);
         printf("sent user\n");
+        printf("ok\n" );
         //send username to the server
         printf("%d\n", sentUser);
 
 
         //go to function to send messages
-        sendMsg(sock);
+        //sendMsg(sock);
 
-        endwin(); //frees memory from initscr and closes the class
+        //endwin(); //frees memory from initscr and closes the class
 
         //close socket
         int closeSock = close(sock);
