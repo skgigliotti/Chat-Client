@@ -2,7 +2,8 @@
 Sophia Gigliotti
 CS140
 Chat Client
-Worked With: Kleinberg and Wilkens (connecting to the server), Ryley Oroku (select)
+Worked With: Kleinberg and Wilkens (connecting to the server), Ryley Oroku (select),
+James Bek (nCurses)
 Resources:
 John Rodkey's Sample Code from Part 1, helped with malloc
 https://gist.github.com/jirihnidek/388271b57003c043d322
@@ -10,9 +11,12 @@ http://man7.org/linux/man-pages/man3/getaddrinfo.3.html
 
 To help with nCurses
 https://github.com/AngusG/tictactoe-ncurses-reinforcement-learning/blob/master/tictactoefunctions.c
+https://www.youtube.com/watch?v=mK7KqX6IQfk
+https://www.youtube.com/watch?v=TDVhJ0dkVo8
 
 To help with Select
 https://www.youtube.com/watch?v=qyFwGyTYe-M
+https://www.gnu.org/software/libc/manual/html_node/Server-Example.html (specifically FD_CLR)
 */
 
 #include<stdio.h>
@@ -31,31 +35,70 @@ https://www.youtube.com/watch?v=qyFwGyTYe-M
 
 #define BUF_SIZE 1024
 #define SERVER "10.115.20.250"
-#define PORT 49153
+#define PORT 49155
 
 
 
-
+int printToScreen(){
+  return 0;
+}
 //create sub console/window to display messages
+
+WINDOW* recWind(){
+  int h = 30;
+  int w = 80;
+  int y = 0;
+  int x = 0;
+  WINDOW *recWin;
+
+  recWin = newwin(h,w,y,x);
+
+  box(recWin,0,0);
+  wrefresh(recWin);
+  return recWin;
+}
+
+WINDOW* sendWind(){
+  int h = 30;
+  int w = 20;
+  int y = 82;
+  int x = 0;
+  WINDOW *sWin;
+  
+  sWin = newwin(h,w,y,x);
+
+  box(sWin,0,0);
+  wrefresh(sWin);
+  return sWin;
+}
+
 int secondWind(){
+
+  int h = 10;
+  int w = 80;
+  int y = 30;
+  int x = 0;
   initscr();
+  cbreak(); //maybe change to raw
 
-  int x;
-  int y;
+  start_color();
+  init_pair(1, COLOR_RED, COLOR_BLACK);
+  attron(COLOR_PAIR(1));
 
-  for( y=0 ; y <=10; y++){
-    mvaddch(y, 0, '|');
-    mvaddch(y,12, '|');
-  }
+  refresh();
 
+  printw("hello world");
 
-  return 1;
+  getch(); //pause in the program, press key to continue
+  endwin(); //frees memory from initscr and closes the class
+
+  return 0;
 
 }
 
 //receive messages from the server and print them to
 //the console
-int receiveMsg(int sock, char *buff){
+int receiveMsg(int sock, char *buff, WINDOW *msgWind){
 
 
   int len;
@@ -69,16 +112,16 @@ int receiveMsg(int sock, char *buff){
   FD_SET(sock, &activeRead);
   time.tv_sec = 5;
   time.tv_usec = 0;
-
+  //FD_ISSET
 
   while(1){
-
+    //scrollok
+    wrefresh(msgWind);
     read = activeRead;
 
     rMsg = select(2, &read, NULL, NULL, &time);
 
     buff = malloc(len+1);
-
 
     if(rMsg < 0){
       printf("timeoutR \n");
@@ -92,7 +135,8 @@ int receiveMsg(int sock, char *buff){
         }
     }
       rec = recv(sock, buff, BUF_SIZE ,0);
-      printf("%s", buff);
+      wprintw(msgWind, buff);
+      wrefresh(msgWind);
       free(buff);
     }
     FD_CLR(0,&activeRead);
@@ -121,9 +165,14 @@ int sendMsg(int sock){
   time.tv_sec = 2;
   time.tv_usec = 0;
 
+  secondWind();
+  WINDOW *msgWind = recWind();
+  WINDOW *sWind = sendWind();
+
   while( !quit ){
 
-    receiveMsg(sock, buffer);
+
+    receiveMsg(sock, buffer, msgWind);
 
     write = activeWrite;
     len = BUF_SIZE;
@@ -134,16 +183,17 @@ int sendMsg(int sock){
 
     //check if server is writing to socket descriptor, and we are trying to read
     wMsg = select(2, &write, NULL, NULL, &time);
-
+    wrefresh(sWind);
     if( wMsg < 0 ){
       printf("timeoutW\n");
     }
     else{
-      if(getline(&buffer, (size_t *) &len, stdin)>1){
-
+      //if(getline(&buffer, (size_t *) &len, stdin)>1){
+        *buffer = wgetch(sWind);
+        wprintw(sWind, buffer);
         sentMsg = send(sock, buffer, strlen(buffer),0);
-
-      }
+        wrefresh(sWind);
+      //}
     }
     FD_CLR(0,&activeWrite);
     quit = (strcmp (buffer,"quit\n") == 0);
