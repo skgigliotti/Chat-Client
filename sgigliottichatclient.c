@@ -66,7 +66,6 @@ WINDOW* recWind(){
   init_pair(5,COLOR_BLUE, COLOR_BLUE);
   wbkgd(recWinContainer, COLOR_PAIR(5));
   wbkgd(recWin, COLOR_PAIR(1));
-
   box(recWinContainer,0,0);
   wrefresh(recWinContainer);
   wrefresh(recWin);
@@ -80,15 +79,14 @@ WINDOW* sendWind(){
   ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
   cols = ts.ts_cols;
   rows = ts.ts_lines;
-
-  int h = (rows/2 - 15) / 2;
+  int h = 2;
   int w = cols - 40;
   int y = rows/2 + 12;
   int x = 20;
   WINDOW *sWin, *sWinContainer;
 
   sWin = newwin(h,w,y,x);
-  sWinContainer = newwin(h+10,w+10,y-5,x-5);
+  sWinContainer = newwin(h+6,w+6,y-3,x-3);
   start_color();
   init_pair(2,COLOR_GREEN, COLOR_WHITE);
   init_pair(4,COLOR_GREEN, COLOR_GREEN);
@@ -121,30 +119,41 @@ int mainWind(){
 
 }
 
+int sendNow(int sock, char *buff){
+  return send(sock,buff,strlen(buff),0);
+}
+
 //receive messages from the server and print them to
 //the console
-int receiveMsg(int sock, char *buff, WINDOW *msgWind){
+int receiveMsg(int sock, char *buff, WINDOW *msgWind, int sendM){
 
 
   int len;
   int rec;
   int rMsg;
+  int m;
   fd_set read, activeRead;
   struct timeval time;
 
   len = BUF_SIZE;
   FD_ZERO(&read);
+  FD_SET(0, &read);
   FD_SET(sock, &read);
   time.tv_sec = 2;
   time.tv_usec = 0;
   //FD_ISSET
 
+  if(sendM == 1){
+    //m = send(sock, buff, strlen(buff),0);
+  }
+
+  else{
   while(1){
 
     //wrefresh(msgWind);
     read = activeRead;
 
-    rMsg = select(2, &read, NULL, NULL, &time);
+    rMsg = select(sock+1, &read, NULL, NULL, &time);
 
     buff = malloc(len+1);
 
@@ -160,14 +169,21 @@ int receiveMsg(int sock, char *buff, WINDOW *msgWind){
         }
     }
       rec = recv(sock, buff, BUF_SIZE ,0);
+      //send(sock, buff, strlen(buff),0);
+      
       scrollok(msgWind,TRUE);
       wprintw(msgWind, buff);
       wrefresh(msgWind);
+      //printf("hello1\n");
       free(buff);
+      //printf("hello2\n");
     }
+    //printf("hello3\n");
     FD_CLR(0,&activeRead);
+    //printf("hello4\n");
 
 
+}
 }
   return rec;
 }
@@ -175,7 +191,7 @@ int receiveMsg(int sock, char *buff, WINDOW *msgWind){
 int sendMsg(int sock){
   char *msg;
   char *sen;
-  char *buffer, *originalbuffer;
+  char *buffer, *otherBuffer;
   int sentMsg;
   int len;
   int wMsg;
@@ -196,25 +212,23 @@ int sendMsg(int sock){
   refresh();
 
   FD_ZERO(&write);
+  FD_SET(0, &write);
   FD_SET(sock, &write);
 
-  time.tv_sec = 2;
+  time.tv_sec = 10;
   time.tv_usec = 0;
   len = BUF_SIZE;
 
   while( !quit ){
+    receiveMsg(sock, buffer, msgWind, 0);
 
-    wprintw(msgWind, "bef rec");
-    receiveMsg(sock, buffer, msgWind);
-    wprintw(msgWind, "after rec");
     wrefresh(msgWind);
+
     write = activeWrite;
 
-    wMsg = select(2, &write, NULL, NULL, &time);
+    wMsg = select(0, &write, NULL, NULL, &time);
 
     buffer = malloc(len+1);
-
-    originalbuffer = buffer;
 
     //check if server is writing to socket descriptor, and we are trying to read
 
@@ -224,23 +238,25 @@ int sendMsg(int sock){
       break;
     }
     else{
-
-        wgetstr(sWind, originalbuffer);
-        wrefresh(sWind);
-        quit = (strcmp (originalbuffer,"quit\n") == 0);
-
+        scrollok(sWind,TRUE);
+        wgetstr(sWind, buffer);
+        receiveMsg(sock, buffer, sWind, 1);
+        //printf("hello2 \n" );
         sentMsg = send(sock, buffer, strlen(buffer),0);
-        //char * yn = (char) sentMsg;
-        //wprintw(sWind, buffer);
-        wclear(sWind);
-        wrefresh(sWind);
+        //sendNow(sock, buffer);
 
+        wrefresh(sWind);
+        wclear(sWind);
+
+        wrefresh(msgWind);
 
 
     }
+    free(buffer);
+
     FD_CLR(0,&activeWrite);
     quit = (strcmp (buffer,"quit\n") == 0);
-    free(originalbuffer);
+
 
   }
   endwin();
@@ -298,8 +314,6 @@ int connectToServer(char *argv, int argc){
       name[len+1] = '\0';
       int sentUser = send(sock, name, sizeof(name),0);
 
-      //send username to the server
-      printf("%d\n", sentUser);
 
 
       //go to function to send messages
