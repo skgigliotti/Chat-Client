@@ -212,7 +212,8 @@ int sendMsg(int sock){
 
         scrollok(sWind,TRUE);
         wgetstr(sWind, buffer);
-
+        wrefresh(sWind);
+        refresh();
         //printf("hello2 \n" );
         sentMsg = send(sock, buffer, strlen(buffer),0);
         //sendNow(sock, buffer);
