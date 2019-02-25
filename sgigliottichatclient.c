@@ -197,11 +197,14 @@ int sendMsg(int sock){
     FD_SET(0, &write);
     FD_SET(sock, &write);
     s = select(sock+1, &write, NULL, NULL, &time);
+
+
     if(FD_ISSET(sock, &write)){
       receiveMsg(sock, buffer, msgWind, 0);
     }
 
     wrefresh(msgWind);
+
 
     if(FD_ISSET(0, &write)){
 
@@ -212,25 +215,27 @@ int sendMsg(int sock){
 
         scrollok(sWind,TRUE);
         wgetstr(sWind, buffer);
+
+        //fgets(buffer,sizeof(buffer),stdin);
+        strcat(buffer,"\n");
         wrefresh(sWind);
-        refresh();
-        //printf("hello2 \n" );
         sentMsg = send(sock, buffer, strlen(buffer),0);
-        //sendNow(sock, buffer);
+
+        quit = (strcmp (buffer,"quit\n") == 0);
 
         wrefresh(sWind);
         wclear(sWind);
 
         wrefresh(msgWind);
-
         free(buffer);
 
     }
+
+
   }
 
-
     FD_CLR(0,&activeWrite);
-    quit = (strcmp (buffer,"quit\n") == 0);
+
 
 
 
