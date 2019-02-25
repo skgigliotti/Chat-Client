@@ -34,7 +34,7 @@ https://www.gnu.org/software/libc/manual/html_node/Server-Example.html (specific
 
 #define BUF_SIZE 1024
 #define SERVER "10.115.20.250"
-#define PORT 49155
+#define PORT 49153
 
 
 
@@ -225,6 +225,7 @@ int sendMsg(int sock){
 
         wrefresh(sWind);
         wclear(sWind);
+        wrefresh(sWind);
 
         wrefresh(msgWind);
         free(buffer);
@@ -289,11 +290,11 @@ int connectToServer(char *argv, int argc){
         exit(1);
       }
 
-      name = &argv[12];
+      name = &argv[1];
       len = strlen(name);
       name[len] = '\n';
       name[len+1] = '\0';
-      int sentUser = send(sock, name, sizeof(name),0);
+      int sentUser = send(sock, name, strlen(name),0);
 
 
 
