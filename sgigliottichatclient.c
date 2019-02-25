@@ -34,7 +34,7 @@ https://www.gnu.org/software/libc/manual/html_node/Server-Example.html (specific
 
 #define BUF_SIZE 1024
 #define SERVER "10.115.20.250"
-#define PORT 49153
+#define PORT 49155
 
 
 
@@ -135,56 +135,31 @@ int receiveMsg(int sock, char *buff, WINDOW *msgWind, int sendM){
   fd_set read, activeRead;
   struct timeval time;
 
-  len = BUF_SIZE;
-  FD_ZERO(&read);
-  FD_SET(0, &read);
-  FD_SET(sock, &read);
-  time.tv_sec = 2;
-  time.tv_usec = 0;
-  //FD_ISSET
-
-  if(sendM == 1){
-    //m = send(sock, buff, strlen(buff),0);
-  }
-
-  else{
-  while(1){
-
-    //wrefresh(msgWind);
-    read = activeRead;
-
-    rMsg = select(sock+1, &read, NULL, NULL, &time);
 
     buff = malloc(len+1);
 
-    if(rMsg < 0){
-      printf("timeoutR \n");
-      return 0;
+    rec = recv(sock, buff, BUF_SIZE ,0);
+
+     if(rec == -1){
+      if(errno == EAGAIN){
+
+      }
     }
 
+
     else{
-      if(rec == -1){
-        if(errno == EAGAIN){
-          break;
-        }
-    }
-      rec = recv(sock, buff, BUF_SIZE ,0);
-      //send(sock, buff, strlen(buff),0);
-      
+
       scrollok(msgWind,TRUE);
       wprintw(msgWind, buff);
       wrefresh(msgWind);
-      //printf("hello1\n");
+}
       free(buff);
-      //printf("hello2\n");
-    }
-    //printf("hello3\n");
-    FD_CLR(0,&activeRead);
-    //printf("hello4\n");
 
 
-}
-}
+
+
+
+
   return rec;
 }
 
@@ -194,7 +169,7 @@ int sendMsg(int sock){
   char *buffer, *otherBuffer;
   int sentMsg;
   int len;
-  int wMsg;
+  int s;
 
   fd_set write, activeWrite;
   struct timeval time;
@@ -211,36 +186,33 @@ int sendMsg(int sock){
 
   refresh();
 
-  FD_ZERO(&write);
-  FD_SET(0, &write);
-  FD_SET(sock, &write);
 
-  time.tv_sec = 10;
+
+  time.tv_sec = 1;
   time.tv_usec = 0;
   len = BUF_SIZE;
 
   while( !quit ){
-    receiveMsg(sock, buffer, msgWind, 0);
+    FD_ZERO(&write);
+    FD_SET(0, &write);
+    FD_SET(sock, &write);
+    s = select(sock+1, &write, NULL, NULL, &time);
+    if(FD_ISSET(sock, &write)){
+      receiveMsg(sock, buffer, msgWind, 0);
+    }
 
     wrefresh(msgWind);
 
-    write = activeWrite;
-
-    wMsg = select(0, &write, NULL, NULL, &time);
+    if(FD_ISSET(0, &write)){
 
     buffer = malloc(len+1);
 
     //check if server is writing to socket descriptor, and we are trying to read
 
-    //wrefresh(sWind);
-    if( wMsg < 0 ){
-      printf("timeoutW\n");
-      break;
-    }
-    else{
+
         scrollok(sWind,TRUE);
         wgetstr(sWind, buffer);
-        receiveMsg(sock, buffer, sWind, 1);
+
         //printf("hello2 \n" );
         sentMsg = send(sock, buffer, strlen(buffer),0);
         //sendNow(sock, buffer);
@@ -250,15 +222,18 @@ int sendMsg(int sock){
 
         wrefresh(msgWind);
 
+        free(buffer);
 
     }
-    free(buffer);
+  }
+
 
     FD_CLR(0,&activeWrite);
     quit = (strcmp (buffer,"quit\n") == 0);
 
 
-  }
+
+
   endwin();
   return sentMsg;
 }
