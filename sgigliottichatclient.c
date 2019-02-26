@@ -37,17 +37,17 @@ https://www.gnu.org/software/libc/manual/html_node/Server-Example.html (specific
 #define PORT 49153
 
 
-
-int printToScreen(){
-  return 0;
-}
-//create sub console/window to display messages
-
+//create sub console/window to display messages from the server
+//this window will be above and is colored blue
 WINDOW* recWind(){
   int cols, rows;
 
   struct ttysize ts;
   ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+
+  //get the number of coloumns and rows of the
+  //terminal to render the boxes and size them
+  //accordingly
   cols = ts.ts_cols;
   rows = ts.ts_lines;
 
@@ -166,7 +166,7 @@ int receiveMsg(int sock, char *buff, WINDOW *msgWind, int sendM){
 int sendMsg(int sock){
   char *msg;
   char *sen;
-  char *buffer, *otherBuffer;
+  char *buffer, *name;
   int sentMsg;
   int len;
   int s;
@@ -191,6 +191,26 @@ int sendMsg(int sock){
   time.tv_sec = 1;
   time.tv_usec = 0;
   len = BUF_SIZE;
+
+  name = malloc(len+1);
+
+  //prompt the user to enter their username and send it to the server
+  wprintw(sWind, "Please enter your username: ");
+  wrefresh(sWind);
+  wgetstr(sWind, name);
+  wrefresh(sWind);
+  strcat(name, "\n");
+  int sentUser = send(sock, name, strlen(name),0);
+  wclear(sWind);
+  wrefresh(sWind);
+  wprintw(sWind, "Please type your messages here. Type 'quit' to exit.");
+  wrefresh(sWind);
+  wclear(sWind);
+  wrefresh(sWind);
+
+
+  //free the memory from the name variable
+  free(name);
 
   while( !quit ){
     FD_ZERO(&write);
@@ -255,10 +275,10 @@ int connectToServer(char *argv, int argc){
   //used to pass in the IP address
   struct in_addr add;
 
-  //allocates enough room for one server
+  //allocate enough room for one server
   struct sockaddr_in saddr;
 
-  /* Set up recv timeout for .5 sec */
+  //Set up recv timeout for .5 sec
   timev.tv_sec = 0;
   timev.tv_usec = 1000 * 500;
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev));
@@ -285,20 +305,8 @@ int connectToServer(char *argv, int argc){
         printf("Error: Cannot connect to the server.");
       }
 
-      if( argc < 2 ){
-        printf("Usage: chat-client <screenname>\n");
-        exit(1);
-      }
-
-      name = &argv[1];
-      len = strlen(name);
-      name[len] = '\n';
-      name[len+1] = '\0';
-      int sentUser = send(sock, name, strlen(name),0);
-
-
-
-      //go to function to send messages
+      //go to take in user name and
+      //to send messages
       sendMsg(sock);
 
       //close socket
